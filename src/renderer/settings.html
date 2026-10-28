@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'">
+  <title>提瓦特歇息之铃 · 设置</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/><path d="M17 4.5v3M15.5 6h3"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 7 2 7 2 8H4c0-1 2-1 2-8Z"/><path d="M9.5 20a2.7 2.7 0 0 0 5 0"/></symbol>
+    <symbol id="i-feather" viewBox="0 0 24 24"><path d="M20 4c-7 0-12 4-12 10v3"/><path d="M20 4c0 8-5 12-12 12"/><path d="M8 17l-3 3"/><path d="M10 13h5M12 9h5"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2l2.1 7.9L22 12l-7.9 2.1L12 22l-2.1-7.9L2 12l7.9-2.1L12 2Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16 8.5a5 5 0 0 1 0 7M19 6a9 9 0 0 1 0 12"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  </svg>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="drag-layer"></div>
+      <div class="sidebar-glow"></div>
+      <div class="constellation c1"></div>
+      <div class="constellation c2"></div>
+
+      <div class="brand">
+        <div class="brand-crest">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <path d="M24 3l4.8 13.4L42 24l-13.2 7.6L24 45l-4.8-13.4L6 24l13.2-7.6L24 3Z" fill="none" stroke="currentColor" stroke-width="1.1"/>
+            <path d="M24 12l2.7 7.3L34 24l-7.3 4.7L24 36l-2.7-7.3L14 24l7.3-4.7L24 12Z" fill="currentColor" opacity=".22"/>
+            <circle cx="24" cy="24" r="3.1" fill="currentColor"/>
+            <path d="M24 1v5M24 42v5M1 24h5M42 24h5" stroke="currentColor" stroke-width="1" opacity=".55"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-en">TEYVAT</span>
+          <h1>歇息之铃</h1>
+          <p>SLEEP REMINDER</p>
+        </div>
+      </div>
+
+      <div class="side-status ornate">
+        <div class="status-row">
+          <span class="status-dot" id="sideDot"></span>
+          <span class="status-text" id="sideState">提醒中</span>
+          <span class="status-chip" id="sideChip">ON</span>
+        </div>
+        <div class="side-range">
+          <span id="sideStart">23:00</span>
+          <i></i>
+          <span id="sideEnd">07:00</span>
+        </div>
+        <div class="side-next"><span>下一次</span><b id="sideNext">今天 23:00</b></div>
+        <div class="side-count"><em id="sideCountdown">00:00:00</em><span>后提醒</span></div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <button type="button" class="nav-item active" data-target="section-time"><span class="nav-index">01</span><span>作息时段</span><i>❖</i></button>
+        <button type="button" class="nav-item" data-target="section-frequency"><span class="nav-index">02</span><span>提醒频率</span><i>❖</i></button>
+        <button type="button" class="nav-item" data-target="section-content"><span class="nav-index">03</span><span>提醒内容</span><i>❖</i></button>
+        <button type="button" class="nav-item" data-target="section-sound"><span class="nav-index">04</span><span>声音与显示</span><i>❖</i></button>
+        <button type="button" class="nav-item" data-target="section-behavior"><span class="nav-index">05</span><span>启动与行为</span><i>❖</i></button>
+      </nav>
+
+      <div class="side-mascot">
+        <div class="mascot-quote">「休息，也是冒险的一部分。」</div>
+        <div class="mascot-stage">
+          <div class="mascot-halo"></div>
+          <img src="assets/mascot.png" alt="小铃">
+        </div>
+        <div class="mascot-name">小铃 <span>·</span> 提瓦特歇息之铃</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="drag-layer"></div>
+      <div class="window-controls">
+        <button type="button" id="minimizeBtn" title="最小化"><span></span></button>
+        <button type="button" id="closeBtn" title="收起到系统托盘"><span></span></button>
+      </div>
+
+      <div class="main-scroll" id="mainScroll">
+        <header class="hero">
+          <div class="hero-orbit" aria-hidden="true">
+            <div class="orbit-ring r1"></div>
+            <div class="orbit-ring r2"></div>
+            <div class="orbit-star s1">✦</div>
+            <div class="orbit-star s2">✧</div>
+            <div class="orbit-star s3">✦</div>
+            <div class="orbit-moon"></div>
+          </div>
+          <div class="hero-kicker"><span></span> DAILY REST RITUAL <span></span></div>
+          <h1>让每一次冒险，<br><em>都有归途。</em></h1>
+          <p class="hero-sub">在设定的时间里，小铃会轻轻提醒你放下手柄，去好好睡一觉。</p>
+          <div class="hero-meta">
+            <span class="hero-pill"><i class="pill-dot" id="heroDot"></i><b id="heroState">提醒中</b></span>
+            <span class="hero-pill"><span>下一次</span><b id="heroNext">今天 23:00</b></span>
+            <span class="hero-pill"><span>倒计时</span><b id="heroCountdown" class="mono">00:00:00</b></span>
+          </div>
+        </header>
+
+        <section class="card" id="section-time">
+          <div class="card-head">
+            <div class="section-icon"><svg><use href="#i-moon"/></svg></div>
+            <div class="card-title">
+              <h2>作息时段</h2>
+              <p>每天在这个时间段内，小铃会按时出现。</p>
+            </div>
+            <div class="card-tag">每日</div>
+          </div>
+
+          <div class="time-grid">
+            <label class="time-field">
+              <span class="field-label">开始时间</span>
+              <div class="time-input-wrap">
+                <input type="time" id="startTime" value="23:00" step="60" aria-label="开始时间">
+                <span class="time-suffix">入夜</span>
+              </div>
+            </label>
+            <div class="time-connector" aria-hidden="true"><span></span><i>✦</i><span></span></div>
+            <label class="time-field">
+              <span class="field-label">结束时间</span>
+              <div class="time-input-wrap">
+                <input type="time" id="endTime" value="07:00" step="60" aria-label="结束时间">
+                <span class="time-suffix">破晓</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="preset-row">
+            <span class="preset-label">快速选择</span>
+            <button type="button" class="chip time-preset" data-start="23:00" data-end="07:00">23:00 — 07:00</button>
+            <button type="button" class="chip time-preset" data-start="00:00" data-end="08:00">00:00 — 08:00</button>
+            <button type="button" class="chip time-preset" data-start="22:30" data-end="06:30">22:30 — 06:30</button>
+            <button type="button" class="chip time-preset" data-start="22:00" data-end="02:00">22:00 — 02:00</button>
+          </div>
+
+          <div class="timeline" aria-hidden="true">
+            <div class="timeline-track" id="timelineTrack">
+              <div class="timeline-ticks"></div>
+            </div>
+            <div class="timeline-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+          </div>
+          <div class="inline-hint"><span class="hint-star">✦</span><span id="timeHint">跨越午夜 · 共 8 小时 00 分 · 预计 16 次提醒</span></div>
+        </section>
+
+        <section class="card" id="section-frequency">
+          <div class="card-head">
+            <div class="section-icon"><svg><use href="#i-bell"/></svg></div>
+            <div class="card-title">
+              <h2>提醒频率</h2>
+              <p>恰到好处的打扰，才不会惊扰好梦。</p>
+            </div>
+            <div class="card-tag">节奏</div>
+          </div>
+
+          <div class="two-col">
+            <div class="control-block">
+              <div class="control-label-row"><span class="field-label">提醒间隔</span><span class="control-value" id="intervalValue">30 分钟</span></div>
+              <div class="stepper">
+                <button type="button" class="step-btn" data-target="intervalMinutes" data-step="-5">−</button>
+                <div class="step-field"><input type="number" id="intervalMinutes" min="5" max="180" step="1" value="30"><span>分钟 / 次</span></div>
+                <button type="button" class="step-btn" data-target="intervalMinutes" data-step="5">＋</button>
+              </div>
+              <input type="range" id="intervalRange" min="5" max="180" step="5" value="30" aria-label="提醒间隔">
+              <div class="range-labels"><span>5 分钟</span><span>3 小时</span></div>
+            </div>
+
+            <div class="control-block">
+              <div class="control-label-row"><span class="field-label">显示时长</span><span class="control-value" id="durationValue">12 秒</span></div>
+              <div class="stepper">
+                <button type="button" class="step-btn" data-target="displaySeconds" data-step="-1">−</button>
+                <div class="step-field"><input type="number" id="displaySeconds" min="4" max="60" step="1" value="12"><span>秒 / 次</span></div>
+                <button type="button" class="step-btn" data-target="displaySeconds" data-step="1">＋</button>
+              </div>
+              <input type="range" id="durationRange" min="4" max="60" step="1" value="12" aria-label="显示时长">
+              <div class="range-labels"><span>4 秒</span><span>60 秒</span></div>
+            </div>
+          </div>
+
+          <div class="estimate">
+            <div class="estimate-icon">✦</div>
+            <div class="estimate-text"><b id="estimateText">今晚预计提醒 16 次</b><span id="estimateSub">首次提醒将在 23:00 出现，每 30 分钟一次。</span></div>
+            <div class="estimate-glow"></div>
+          </div>
+        </section>
+
+        <section class="card" id="section-content">
+          <div class="card-head">
+            <div class="section-icon"><svg><use href="#i-feather"/></svg></div>
+            <div class="card-title">
+              <h2>提醒内容</h2>
+              <p>写下想让旅行者听见的那句话。</p>
+            </div>
+            <div class="card-tag">文案</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row-label"><span class="field-label">标题</span><span class="char-count" id="titleCount">0 / 18</span></div>
+            <input type="text" class="text-input" id="title" maxlength="18" value="夜深了，旅行者" placeholder="例如：夜深了，旅行者">
+          </div>
+
+          <div class="field">
+            <div class="field-row-label"><span class="field-label">提示文案</span><span class="char-count" id="messageCount">0 / 120</span></div>
+            <textarea class="text-area" id="message" maxlength="120" rows="3" placeholder="例如：提瓦特的星空再美，也不及一场好梦。">提瓦特的星空再美，也不及一场好梦。
+放下冒险，去休息吧。</textarea>
+            <div class="field-foot"><span>支持换行，最多 120 字</span><span>将显示在屏幕上方</span></div>
+          </div>
+
+          <div class="copy-presets">
+            <span class="preset-label">文案风格</span>
+            <button type="button" class="chip copy-preset" data-preset="gentle">温柔</button>
+            <button type="button" class="chip copy-preset" data-preset="short">简短</button>
+            <button type="button" class="chip copy-preset" data-preset="dramatic">星海</button>
+            <button type="button" class="preview-link" id="previewBtn"><span>▷</span> 预览提醒</button>
+          </div>
+        </section>
+
+        <section class="card" id="section-sound">
+          <div class="card-head">
+            <div class="section-icon"><svg><use href="#i-music"/></svg></div>
+            <div class="card-title">
+              <h2>声音与显示</h2>
+              <p>一声轻响，一点微光，足够把你从冒险里唤回。</p>
+            </div>
+            <div class="card-tag">氛围</div>
+          </div>
+
+          <div class="sound-grid" id="soundGrid">
+            <button type="button" class="sound-card selected" data-sound="harp">
+              <span class="sound-glyph">♫</span>
+              <b>竖琴</b>
+              <small>清亮 · 柔和</small>
+              <i class="sound-check">✓</i>
+            </button>
+            <button type="button" class="sound-card" data-sound="chime">
+              <span class="sound-glyph">❖</span>
+              <b>风铃</b>
+              <small>空灵 · 悠长</small>
+              <i class="sound-check">✓</i>
+            </button>
+            <button type="button" class="sound-card" data-sound="none">
+              <span class="sound-glyph">◌</span>
+              <b>静音</b>
+              <small>只留文字</small>
+              <i class="sound-check">✓</i>
+            </button>
+          </div>
+
+          <div class="volume-row">
+            <div class="volume-label"><svg><use href="#i-volume"/></svg><span>提示音量</span></div>
+            <input type="range" id="volume" min="0" max="100" step="1" value="55" aria-label="提示音量">
+            <span class="volume-value" id="volumeValue">55%</span>
+            <button type="button" class="listen-btn" id="listenBtn">试听</button>
+          </div>
+
+          <div class="toggle-grid">
+            <label class="switch-line">
+              <span class="switch-copy"><b>显示收起倒计时</b><small>在横幅右侧显示剩余秒数</small></span>
+              <span class="switch"><input type="checkbox" id="showCountdown" checked><i class="switch-track"></i></span>
+            </label>
+            <label class="switch-line">
+              <span class="switch-copy"><b>完全鼠标穿透</b><small>开启后横幅不响应点击，只安静显示</small></span>
+              <span class="switch"><input type="checkbox" id="clickThrough"><i class="switch-track"></i></span>
+            </label>
+            <label class="switch-line">
+              <span class="switch-copy"><b>显示在所有屏幕</b><small>每个显示器的顶部都出现一条提醒</small></span>
+              <span class="switch"><input type="checkbox" id="allDisplays"><i class="switch-track"></i></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="card" id="section-behavior">
+          <div class="card-head">
+            <div class="section-icon"><svg><use href="#i-power"/></svg></div>
+            <div class="card-title">
+              <h2>启动与行为</h2>
+              <p>让它安静地待在托盘里，替你看守夜晚。</p>
+            </div>
+            <div class="card-tag">常驻</div>
+          </div>
+
+          <div class="toggle-grid no-border">
+            <label class="switch-line">
+              <span class="switch-copy"><b>启用休息提醒</b><small>关闭后仍会留在托盘，但不再弹出提醒</small></span>
+              <span class="switch"><input type="checkbox" id="enabled" checked><i class="switch-track"></i></span>
+            </label>
+            <label class="switch-line">
+              <span class="switch-copy"><b>开机自动启动</b><small id="autoStartHint">登录 Windows 后自动在托盘运行</small></span>
+              <span class="switch"><input type="checkbox" id="autoStart"><i class="switch-track"></i></span>
+            </label>
+          </div>
+
+          <div class="data-rows">
+            <div class="data-row"><span>配置文件与日志</span><button type="button" id="openDataBtn"><svg><use href="#i-external"/></svg> 打开数据目录</button></div>
+            <div class="data-row"><span>当前版本</span><b id="versionLabel">v1.0.0</b></div>
+            <div class="data-row"><span>提示窗口</span><b>屏幕上方 · 置顶显示</b></div>
+          </div>
+
+          <div class="notice">
+            <span class="notice-mark">✦</span>
+            <p>关闭设置窗口不会退出程序，小铃会继续留在系统托盘。需要彻底退出时，请使用托盘菜单中的「退出」。</p>
+          </div>
+        </section>
+
+        <div class="scroll-end">— 愿星光伴你入眠 —</div>
+      </div>
+
+      <footer class="footer">
+        <div class="footer-note"><span class="note-dot" id="dirtyDot"></span><span id="saveState">所有更改将在保存后生效</span></div>
+        <div class="footer-actions">
+          <button type="button" class="ghost-btn" id="resetBtn">恢复默认</button>
+          <button type="button" class="ghost-btn" id="testBtn"><svg><use href="#i-bell"/></svg> 立即提醒</button>
+          <button type="button" class="primary-btn" id="saveBtn"><span>保存并应用</span><i>❖</i></button>
+        </div>
+      </footer>
+
+      <div class="toast" id="toast" role="status"><span class="toast-mark">✦</span><span id="toastText"></span></div>
+
+      <div class="modal-backdrop" id="modal" hidden>
+        <div class="modal">
+          <div class="modal-mark">✦</div>
+          <h3>恢复默认设置？</h3>
+          <p>作息时段、文案、声音与显示选项都会回到初始状态。已保存的提醒会立即按默认设置重新计算。</p>
+          <div class="modal-actions">
+            <button type="button" class="ghost-btn" id="modalCancel">再想想</button>
+            <button type="button" class="primary-btn compact" id="modalConfirm"><span>恢复默认</span></button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="audio.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>

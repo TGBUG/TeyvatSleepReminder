@@ -1,0 +1,22 @@
+{
+  "name": "teyvat-sleep-reminder",
+  "productName": "提瓦特歇息之铃",
+  "version": "1.0.1",
+  "description": "Genshin-style sleep reminder for Windows",
+  "main": "src/main.js",
+  "author": "TGBUG",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "demo": "electron . --demo",
+    "capture": "electron . --capture",
+    "selftest": "electron . --selftest",
+    "test": "node --test test/*.test.js",
+    "build:win": "bash scripts/build-win.sh"
+  },
+  "devDependencies": {
+    "electron": "^38.2.0",
+    "resedit": "^3.1.0"
+  }
+}

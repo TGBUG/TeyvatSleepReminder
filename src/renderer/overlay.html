@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'">
+  <title>休息提醒</title>
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="banner-wrap" id="banner" role="alert">
+      <div class="gem"></div>
+      <div class="banner-frame">
+        <div class="banner">
+          <div class="dust"></div>
+          <div class="corner c-tl"></div>
+          <div class="corner c-tr"></div>
+          <div class="corner c-bl"></div>
+          <div class="corner c-br"></div>
+
+          <div class="portrait">
+            <div class="portrait-halo"></div>
+            <img src="assets/mascot.png" alt="">
+            <div class="spark sp1"></div>
+            <div class="spark sp2"></div>
+          </div>
+
+          <div class="content">
+            <div class="eyebrow">
+              <span class="eyebrow-line"></span>
+              <span id="eyebrow">小铃的提醒</span>
+              <span class="eyebrow-line"></span>
+            </div>
+            <h1 id="title">夜深了，旅行者</h1>
+            <p id="message">提瓦特的星空再美，也不及一场好梦。</p>
+            <div class="footnote">
+              <span class="diamond"></span>
+              <span id="nextText">下次提醒 · 今天 23:30</span>
+            </div>
+          </div>
+
+          <div class="side" id="side">
+            <div class="countdown" id="countdownBox">
+              <div class="countdown-number"><span id="count">12</span><small>s</small></div>
+              <div class="countdown-label">后自动收起</div>
+            </div>
+            <button class="confirm" id="confirm" type="button">
+              <span>知道了</span>
+              <i>❖</i>
+            </button>
+          </div>
+
+          <div class="progress"><i id="progress"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="audio.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>
