@@ -1,7 +1,7 @@
 {
   "name": "teyvat-sleep-reminder",
   "productName": "提瓦特歇息之铃",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Genshin-style sleep reminder for Windows",
   "main": "src/main.js",
   "author": "TGBUG",

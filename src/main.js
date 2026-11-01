@@ -22,6 +22,10 @@ if (process.env.TEYVAT_DATA_DIR) {
 app.setName('TeyvatSleepReminder');
 app.setAppUserModelId('com.teyvat.sleepreminder');
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+// This is a small 2D tray app; software compositing is enough and avoids
+// keeping a hardware GPU process alive for months in the background.
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-features', 'SpareRendererForSitePerProcess');
 
 const DATA_DIR = app.getPath('userData');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
@@ -43,6 +47,7 @@ let screenLocked = false;
 let captureMode = IS_CAPTURE || IS_SELFTEST;
 let tickTimer = null;
 let overlayHideTimer = null;
+let overlayCleanupTimer = null;
 let overlayGeneration = 0;
 let lastTrayTooltip = '';
 let trayHintShown = false;
@@ -220,7 +225,7 @@ function createSettingsWindow() {
       nodeIntegration: false,
       sandbox: false,
       spellcheck: false,
-      backgroundThrottling: false
+      backgroundThrottling: true
     }
   });
 
@@ -230,7 +235,7 @@ function createSettingsWindow() {
   settingsWindow.webContents.on('will-navigate', (event) => event.preventDefault());
 
   settingsWindow.once('ready-to-show', () => {
-    if (!IS_HIDDEN && !captureMode) {
+    if (!IS_HIDDEN && !captureMode && settingsWindow && !settingsWindow.isDestroyed()) {
       settingsWindow.show();
       settingsWindow.focus();
     }
@@ -239,12 +244,15 @@ function createSettingsWindow() {
   settingsWindow.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault();
-      settingsWindow.hide();
       showTrayHint();
       if (!tray) {
         isQuitting = true;
         app.quit();
+        return;
       }
+      const win = settingsWindow;
+      settingsWindow = null;
+      try { win.destroy(); } catch (error) { log('销毁设置窗口失败:', error); }
     }
   });
 
@@ -259,8 +267,15 @@ function showSettings() {
   const win = createSettingsWindow();
   if (!win) return;
   if (win.isMinimized()) win.restore();
-  win.show();
-  win.focus();
+  if (win.webContents.isLoading()) {
+    win.once('ready-to-show', () => {
+      win.show();
+      win.focus();
+    });
+  } else {
+    win.show();
+    win.focus();
+  }
 }
 
 function overlayBounds(display) {
@@ -347,8 +362,11 @@ function syncOverlayWindows(cfg = config) {
     }
   }
 
+  // Overlay windows are created on demand by showOverlay(). Keeping hidden
+  // Chromium renderers alive is the main avoidable memory cost of this app.
   for (const display of targets) {
-    const win = ensureOverlayWindow(display);
+    const win = overlayWindows.get(displayKey(display));
+    if (!win || win.isDestroyed()) continue;
     const bounds = overlayBounds(display);
     try {
       win.setBounds(bounds);
@@ -356,6 +374,19 @@ function syncOverlayWindows(cfg = config) {
       win.setIgnoreMouseEvents(true, { forward: true });
     } catch (_) { /* ignore */ }
   }
+}
+
+function scheduleOverlayCleanup() {
+  clearTimeout(overlayCleanupTimer);
+  overlayCleanupTimer = setTimeout(() => {
+    overlayCleanupTimer = null;
+    for (const win of overlayWindows.values()) {
+      if (!win.isDestroyed()) {
+        try { win.destroy(); } catch (_) { /* ignore */ }
+      }
+    }
+    overlayWindows.clear();
+  }, 2500);
 }
 
 function setAllOverlaysClickThrough(enabled) {
@@ -389,6 +420,7 @@ function hideOverlays() {
         try { win.setIgnoreMouseEvents(true, { forward: true }); } catch (_) { /* ignore */ }
       }
     }
+    scheduleOverlayCleanup();
   }, 480);
   hideTimers.add(timer);
 }
@@ -398,6 +430,8 @@ function showOverlay(payload) {
   const generation = overlayGeneration;
   clearTimeout(overlayHideTimer);
   overlayHideTimer = null;
+  clearTimeout(overlayCleanupTimer);
+  overlayCleanupTimer = null;
 
   const targets = targetDisplays({ allDisplays: Boolean(payload.allDisplays) });
   const wanted = new Set(targets.map(displayKey));
@@ -788,7 +822,7 @@ async function runSelfTest() {
       title: '预览测试', message: '预览第一行\\n预览第二行', sound: 'none', volume: 0.3,
       showCountdown: true, clickThrough: false, allDisplays: false
     })`);
-    await wait(700);
+    await wait(1600);
     const previewWin = overlayWindows.get(displayKey(getPrimaryDisplay()));
     assert(previewWin && previewWin.isVisible(), 'preview makes overlay visible');
     const previewTitle = await previewWin.webContents.executeJavaScript("document.getElementById('title').textContent");
@@ -884,7 +918,7 @@ async function captureScreens() {
   }
 
   showReminder({ ...config, enabled: true }, { preview: true });
-  await new Promise((resolve) => setTimeout(resolve, 1700));
+  await new Promise((resolve) => setTimeout(resolve, 2600));
   const target = overlayWindows.get(displayKey(getPrimaryDisplay()));
   if (target) {
     const overlayImage = await target.webContents.capturePage();
@@ -917,20 +951,13 @@ const hasLock = app.requestSingleInstanceLock();
 if (!hasLock) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
-    if (settingsWindow && !settingsWindow.isDestroyed()) {
-      if (settingsWindow.isMinimized()) settingsWindow.restore();
-      settingsWindow.show();
-      settingsWindow.focus();
-    }
-  });
+  app.on('second-instance', showSettings);
 
   app.whenReady().then(async () => {
     log('应用启动', { version: app.getVersion(), packaged: app.isPackaged, dataDir: DATA_DIR });
     registerIpc();
-    createSettingsWindow();
+    if (!IS_HIDDEN) createSettingsWindow();
     createTray();
-    syncOverlayWindows();
     startTicker();
     await syncAutostartOnLaunch();
 
@@ -995,6 +1022,7 @@ if (!hasLock) {
     isQuitting = true;
     if (tickTimer) clearInterval(tickTimer);
     if (overlayHideTimer) clearTimeout(overlayHideTimer);
+    if (overlayCleanupTimer) clearTimeout(overlayCleanupTimer);
     for (const timer of hideTimers) clearTimeout(timer);
     hideTimers.clear();
     if (tray) {

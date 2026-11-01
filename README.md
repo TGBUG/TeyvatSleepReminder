@@ -17,9 +17,16 @@
 - **鼠标穿透**：默认只有横幅本身可点击，四周空白区域不阻挡桌面操作。
 - **本地配置**：所有设置保存在 %APPDATA%\TeyvatSleepReminder\config.json，不联网。
 
+## 内存策略
+
+- 关闭设置窗口时会直接销毁设置页的渲染进程，而不是隐藏保留。
+- 屏幕横幅只在需要显示时创建，收起 2.5 秒后销毁；空闲时保留 0 个 renderer。
+- 已关闭硬件加速和 Chromium 的 spare renderer，减少常驻 GPU/渲染开销。
+- Electron / Chromium 主进程仍有基础内存占用。若目标是把常驻内存压到 50MB 以下，需要改为原生 Win32 / WPF 实现；Tauri / WebView2 仍然基于 Chromium，收益有限。
+
 ## 直接使用
 
-1. 解压 TeyvatSleepReminder-v1.0.1-win64.zip。
+1. 解压 TeyvatSleepReminder-v1.0.2-win64.zip。
 2. 双击 TeyvatSleepReminder.exe。
 3. 设置时段与频率，点击「保存并应用」。
 
@@ -27,7 +34,7 @@
 
 默认是 **23:00 – 07:00，每 30 分钟一次，显示 12 秒**。启动时如果正处在时段内，会立即提醒一次，之后按「时段起点 + 间隔」对齐；例如 23:00 开始、30 分钟间隔，就在 23:00、23:30、00:00……出现。
 
-关闭设置窗口不会退出程序，横幅和托盘会继续工作。彻底退出请使用托盘菜单的「退出」。
+关闭设置窗口会收起到托盘并释放设置页内存，横幅和托盘会继续工作。彻底退出请使用托盘菜单的「退出」。
 
 > 首次运行可能被 SmartScreen 提示「未知发布者」，这是未签名便携程序的正常现象；可选择「更多信息 → 仍要运行」。
 
@@ -61,8 +68,8 @@ bash scripts/build-win.sh
 脚本会下载 Electron 38.8.6 win32-x64、组装便携目录、写入 exe 图标与版本信息，输出：
 
 - dist/TeyvatSleepReminder-win32-x64/
-- dist/TeyvatSleepReminder-v1.0.1-win64.zip
-- dist/TeyvatSleepReminder-v1.0.1-win64.sha256.txt
+- dist/TeyvatSleepReminder-v1.0.2-win64.zip
+- dist/TeyvatSleepReminder-v1.0.2-win64.sha256.txt
 
 ## 说明与限制
 
