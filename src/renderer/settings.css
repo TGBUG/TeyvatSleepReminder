@@ -1284,6 +1284,282 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px 
 
 .no-border .switch-line:last-child { border-bottom: 0; }
 
+/* ------------------------------- sleep ------------------------------- */
+
+.sleep-time-grid { margin-top: 20px; }
+
+.sleep-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 10px 13px;
+  border: 1px solid #e1d4bb;
+  border-radius: 4px;
+  background: linear-gradient(100deg, #f8f0df, #fdf9f0 70%, #f8f0df);
+}
+
+.sleep-status-copy {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.sleep-status-copy b {
+  font-size: 10.5px;
+  color: #5e513b;
+  letter-spacing: .05em;
+}
+.sleep-status-copy span:last-child {
+  font-size: 8.5px;
+  color: #9c8d76;
+  letter-spacing: .02em;
+}
+.sleep-status-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #b8ad9b;
+}
+.sleep-status-dot.is-active {
+  background: #c09a58;
+  box-shadow: 0 0 7px rgba(192, 154, 88, .6);
+  animation: dotPulse 2.4s ease-in-out infinite;
+}
+.sleep-status-current {
+  flex: none;
+  font-size: 9px;
+  color: #9a8058;
+  letter-spacing: .03em;
+}
+
+.sleep-prompt {
+  margin-top: 13px;
+  border-top: 1px solid var(--line-soft);
+}
+.sleep-prompt .switch-line {
+  border-bottom: 0;
+  padding-top: 10px;
+  padding-bottom: 8px;
+}
+.sleep-prompt-editor {
+  transition: opacity .2s ease;
+}
+.sleep-prompt-editor.is-disabled {
+  opacity: .45;
+}
+.sleep-prompt-input {
+  min-height: 58px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.sleep-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 15px;
+  border: 1px solid #e2d4b8;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fffdf8;
+}
+.sleep-stat {
+  padding: 11px 13px;
+  border-right: 1px solid #ece2d0;
+  min-width: 0;
+}
+.sleep-stat:last-child { border-right: 0; }
+.sleep-stat span {
+  display: block;
+  font-size: 8.5px;
+  letter-spacing: .06em;
+  color: #a29683;
+}
+.sleep-stat b {
+  display: block;
+  margin-top: 4px;
+  font-family: 'Cinzel', 'Microsoft YaHei UI', serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5b6270;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sleep-chart-block { margin-top: 18px; }
+.sleep-chart-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sleep-chart-head h3,
+.sleep-records-head h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #505a6b;
+  letter-spacing: .08em;
+}
+.sleep-chart-head p {
+  margin: 4px 0 0;
+  font-size: 8.5px;
+  color: #a39886;
+  letter-spacing: .04em;
+}
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  font-size: 8px;
+  color: #a39886;
+  padding-bottom: 2px;
+}
+.chart-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #ead8ad, #b89355);
+}
+
+.sleep-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 112px;
+  margin-top: 11px;
+  border-bottom: 1px solid #e3d8c1;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 27px,
+    rgba(184, 147, 85, .07) 27px,
+    rgba(184, 147, 85, .07) 28px
+  );
+}
+.sleep-chart.is-empty {
+  display: grid;
+  place-items: center;
+  background-image: none;
+  border-bottom: 1px dashed #ddcfb5;
+}
+.sleep-chart-empty {
+  padding: 14px 20px;
+  text-align: center;
+  font-family: 'STKaiti', 'KaiTi', 'Microsoft YaHei UI', serif;
+  font-size: 13px;
+  letter-spacing: .06em;
+  line-height: 1.8;
+  color: #8c744a;
+  background: radial-gradient(circle at 50% 50%, rgba(216, 189, 134, .16), transparent 70%);
+}
+.sleep-bar-slot {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sleep-bar {
+  width: 100%;
+  max-width: 15px;
+  min-height: 0;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #eddbb0, #c7a463 55%, #a88445);
+  box-shadow: 0 0 7px rgba(184, 147, 85, .16);
+  transition: height .35s cubic-bezier(.2, .7, .3, 1);
+}
+.sleep-bar-slot.is-empty {
+  background: linear-gradient(180deg, transparent calc(100% - 1px), rgba(184, 147, 85, .18) calc(100% - 1px));
+}
+.sleep-chart-labels {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+}
+.sleep-chart-label {
+  flex: 1;
+  min-width: 0;
+  min-height: 10px;
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 7px;
+  color: #a39886;
+  white-space: nowrap;
+}
+
+.sleep-records-block { margin-top: 18px; }
+.sleep-records-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.sleep-records-head span {
+  font-size: 8px;
+  color: #aaa08f;
+  letter-spacing: .02em;
+}
+.sleep-records {
+  max-height: 148px;
+  overflow-y: auto;
+  border: 1px solid #e7dcc8;
+  border-radius: 4px;
+  background: #fffdf8;
+  scrollbar-width: thin;
+  scrollbar-color: #d7c8aa transparent;
+}
+.sleep-records::-webkit-scrollbar { width: 5px; }
+.sleep-records::-webkit-scrollbar-thumb { background: #d7c8aa; border-radius: 4px; }
+.sleep-record-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f1e9da;
+  font-size: 9px;
+  color: #8e8371;
+}
+.sleep-record-row:last-child { border-bottom: 0; }
+.sleep-record-date {
+  font-family: 'Cinzel', serif;
+  font-size: 8.5px;
+  color: #9a7c48;
+  letter-spacing: .03em;
+}
+.sleep-record-first { color: #9a8e7b; }
+.sleep-record-duration {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #596171;
+  white-space: nowrap;
+}
+.sleep-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.8;
+  color: #a39886;
+}
+
+@media (max-width: 860px) {
+  .sleep-status-bar { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .sleep-status-current { padding-left: 14px; }
+  .sleep-stats { grid-template-columns: 1fr 1fr 1fr; }
+  .sleep-stat { padding: 9px 8px; }
+  .sleep-stat b { font-size: 12px; }
+  .sleep-records-head span { display: none; }
+}
+
 /* ------------------------------ behavior ----------------------------- */
 
 .data-rows {

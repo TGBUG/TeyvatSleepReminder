@@ -249,6 +249,45 @@ body {
   overflow: hidden;
 }
 
+body.has-sleep-note .content p {
+  -webkit-line-clamp: 2;
+}
+
+.sleep-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-left: 2px solid rgba(216, 189, 134, .68);
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, rgba(216, 189, 134, .13), rgba(216, 189, 134, .015));
+  color: #e8d6a9;
+  font-size: 11px;
+  line-height: 1.62;
+  letter-spacing: .03em;
+  white-space: pre-line;
+}
+
+.sleep-note[hidden] {
+  display: none;
+}
+
+.sleep-note-icon {
+  flex: none;
+  color: var(--gold-bright);
+  font-size: 12px;
+  line-height: 1.45;
+  text-shadow: 0 0 10px rgba(245, 228, 182, .35);
+}
+
+.sleep-note span:last-child {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .footnote {
   display: flex;
   align-items: center;

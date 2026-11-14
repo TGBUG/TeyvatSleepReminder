@@ -99,6 +99,10 @@ test('normalizeConfig clamps unsafe values and keeps text', () => {
   assert.equal(config.sound, DEFAULT_CONFIG.sound);
   assert.equal(config.title, DEFAULT_CONFIG.title);
   assert.equal(config.message, 'line1\nline2');
+  assert.equal(config.sleepStartTime, DEFAULT_CONFIG.sleepStartTime);
+  assert.equal(config.sleepEndTime, DEFAULT_CONFIG.sleepEndTime);
+  assert.equal(config.sleepPromptEnabled, DEFAULT_CONFIG.sleepPromptEnabled);
+  assert.equal(config.sleepPrompt, DEFAULT_CONFIG.sleepPrompt);
 });
 
 test('slotKey changes when the date rolls over', () => {

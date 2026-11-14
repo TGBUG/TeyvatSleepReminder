@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('sleepAPI', {
   preview: (config) => ipcRenderer.invoke('reminder:preview', config),
   remindNow: () => ipcRenderer.invoke('reminder:now'),
   getStatus: () => ipcRenderer.invoke('status:get'),
+  getSleepLog: () => ipcRenderer.invoke('sleep:get'),
   setEnabled: (enabled) => ipcRenderer.invoke('schedule:set-enabled', enabled),
   openDataDir: () => ipcRenderer.invoke('app:open-data'),
   minimize: () => ipcRenderer.send('window:minimize'),

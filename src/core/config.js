@@ -13,7 +13,11 @@ const DEFAULT_CONFIG = Object.freeze({
   autoStart: false,
   clickThrough: false,
   allDisplays: false,
-  showCountdown: true
+  showCountdown: true,
+  sleepStartTime: '23:30',
+  sleepEndTime: '07:30',
+  sleepPromptEnabled: true,
+  sleepPrompt: '已经到睡觉时间了，旅行者。\n把手机放下，去梦里继续冒险吧。'
 });
 
 const SOUNDS = new Set(['harp', 'chime', 'none']);
@@ -60,7 +64,11 @@ function normalizeConfig(raw) {
     autoStart: typeof input.autoStart === 'boolean' ? input.autoStart : DEFAULT_CONFIG.autoStart,
     clickThrough: typeof input.clickThrough === 'boolean' ? input.clickThrough : DEFAULT_CONFIG.clickThrough,
     allDisplays: typeof input.allDisplays === 'boolean' ? input.allDisplays : DEFAULT_CONFIG.allDisplays,
-    showCountdown: typeof input.showCountdown === 'boolean' ? input.showCountdown : DEFAULT_CONFIG.showCountdown
+    showCountdown: typeof input.showCountdown === 'boolean' ? input.showCountdown : DEFAULT_CONFIG.showCountdown,
+    sleepStartTime: validTime(input.sleepStartTime, DEFAULT_CONFIG.sleepStartTime),
+    sleepEndTime: validTime(input.sleepEndTime, DEFAULT_CONFIG.sleepEndTime),
+    sleepPromptEnabled: typeof input.sleepPromptEnabled === 'boolean' ? input.sleepPromptEnabled : DEFAULT_CONFIG.sleepPromptEnabled,
+    sleepPrompt: cleanText(input.sleepPrompt, 80, DEFAULT_CONFIG.sleepPrompt)
   };
 }
 

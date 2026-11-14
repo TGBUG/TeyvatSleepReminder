@@ -7,6 +7,10 @@ const path = require('path');
 const fs = require('fs');
 const { DEFAULT_CONFIG, normalizeConfig } = require('./core/config');
 const { getScheduleState, formatClock, describeWindow } = require('./core/schedule');
+const {
+  sleepState, sleepWindowMinutes, createSleepStore, normalizeSleepStore,
+  recordSleepTick, pruneSleepStore, buildSleepSummary
+} = require('./core/sleep');
 const { setAutoStart, isAutoStartEnabled, supported: autoStartSupported } = require('./core/autostart');
 
 const IS_CAPTURE = process.argv.includes('--capture') && !app.isPackaged;
@@ -29,6 +33,7 @@ app.commandLine.appendSwitch('disable-features', 'SpareRendererForSitePerProcess
 
 const DATA_DIR = app.getPath('userData');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
+const SLEEP_LOG_FILE = path.join(DATA_DIR, 'sleep-log.json');
 const LOG_FILE = path.join(DATA_DIR, 'app.log');
 const RENDERER_DIR = path.join(__dirname, 'renderer');
 const ASSET_DIR = path.join(__dirname, '..', 'assets');
@@ -44,6 +49,9 @@ let isQuitting = false;
 let lastSlotKey = null;
 let lastFiredAt = null;
 let screenLocked = false;
+let sleepLog = createSleepStore();
+let lastSleepTickAt = null;
+let lastSleepSaveAt = 0;
 let captureMode = IS_CAPTURE || IS_SELFTEST;
 let tickTimer = null;
 let overlayHideTimer = null;
@@ -99,7 +107,74 @@ function saveConfigFile() {
   }
 }
 
+function loadSleepLog() {
+  try {
+    if (!fs.existsSync(SLEEP_LOG_FILE)) {
+      sleepLog = createSleepStore();
+      return;
+    }
+    const raw = JSON.parse(fs.readFileSync(SLEEP_LOG_FILE, 'utf8'));
+    sleepLog = normalizeSleepStore(raw);
+    pruneSleepStore(sleepLog, new Date());
+    log('睡眠日志已加载', { days: Object.keys(sleepLog.days).length });
+  } catch (error) {
+    log('读取睡眠日志失败，保留损坏文件并重新开始:', error);
+    try {
+      fs.renameSync(SLEEP_LOG_FILE, SLEEP_LOG_FILE + '.corrupt-' + Date.now());
+    } catch (_) { /* ignore */ }
+    sleepLog = createSleepStore();
+  }
+}
+
+function saveSleepLog() {
+  try {
+    pruneSleepStore(sleepLog, new Date());
+    const temp = SLEEP_LOG_FILE + '.tmp';
+    fs.writeFileSync(temp, JSON.stringify(sleepLog, null, 2), 'utf8');
+    fs.renameSync(temp, SLEEP_LOG_FILE);
+    lastSleepSaveAt = Date.now();
+  } catch (error) {
+    log('保存睡眠日志失败:', error);
+  }
+}
+
+function sleepTick(now = new Date()) {
+  const result = recordSleepTick(sleepLog, now, config, lastSleepTickAt);
+  lastSleepTickAt = now;
+  if (!result.recorded) return result;
+  if (result.created || Date.now() - lastSleepSaveAt > 30000) saveSleepLog();
+  return result;
+}
+
+function buildSleepData(now = new Date()) {
+  const summary = buildSleepSummary(sleepLog, now, config);
+  const state = summary.state;
+  const current = state.active && state.key ? sleepLog.days[state.key] : null;
+  return {
+    now: now.toISOString(),
+    windowStart: config.sleepStartTime,
+    windowEnd: config.sleepEndTime,
+    windowMinutes: summary.windowMinutes,
+    state: {
+      ...state,
+      nextLabel: nextLabel(state.nextAt, now)
+    },
+    current: current ? {
+      date: current.date,
+      firstSeenAt: current.firstSeenAt,
+      lastSeenAt: current.lastSeenAt,
+      observedSeconds: current.observedSeconds,
+      windowStart: current.windowStart,
+      windowEnd: current.windowEnd
+    } : null,
+    chart: summary.chart,
+    records: summary.records,
+    stats: summary.stats
+  };
+}
+
 loadConfig();
+loadSleepLog();
 
 function getPrimaryDisplay() {
   return screen.getPrimaryDisplay();
@@ -140,7 +215,19 @@ function buildStatus() {
   const now = new Date();
   const schedule = getScheduleState(now, config);
   const window = describeWindow(config);
+  const sleep = sleepState(now, config);
+  const sleepRecord = sleep.active && sleep.key ? sleepLog.days[sleep.key] : null;
   return {
+    sleep: {
+      active: sleep.active,
+      key: sleep.key,
+      nextAt: sleep.nextAt.toISOString(),
+      nextLabel: nextLabel(sleep.nextAt, now),
+      currentSeconds: sleepRecord ? sleepRecord.observedSeconds : 0,
+      windowStart: config.sleepStartTime,
+      windowEnd: config.sleepEndTime,
+      windowMinutes: sleepWindowMinutes(config)
+    },
     enabled: config.enabled,
     active: config.enabled && schedule.active,
     inWindow: schedule.inWindow,
@@ -280,7 +367,7 @@ function showSettings() {
 
 function overlayBounds(display) {
   const width = Math.min(940, Math.max(460, display.workArea.width));
-  const height = 260;
+  const height = 320;
   return {
     width,
     height,
@@ -468,8 +555,13 @@ function showOverlay(payload) {
 }
 
 function showReminder(cfg, options = {}) {
-  const schedule = getScheduleState(new Date(), cfg);
+  const now = new Date();
+  const schedule = getScheduleState(now, cfg);
   const preview = Boolean(options.preview);
+  const sleep = sleepState(now, cfg);
+  const sleepNote = cfg.sleepPromptEnabled && cfg.sleepPrompt && (preview || sleep.active)
+    ? cfg.sleepPrompt
+    : '';
   const payload = {
     title: cfg.title,
     message: cfg.message,
@@ -487,6 +579,7 @@ function showReminder(cfg, options = {}) {
     playSound: cfg.sound !== 'none',
     clickThrough: cfg.clickThrough,
     allDisplays: cfg.allDisplays,
+    sleepNote,
     preview
   };
   setAllOverlaysClickThrough(cfg.clickThrough);
@@ -521,6 +614,7 @@ function startTicker() {
   let lastMinute = -1;
   tickTimer = setInterval(() => {
     const now = new Date();
+    sleepTick(now);
     const status = buildStatus();
     updateTrayTooltip(status);
     if (settingsWindow && !settingsWindow.isDestroyed() && settingsWindow.isVisible()) {
@@ -639,10 +733,18 @@ function registerIpc() {
       previous.endTime !== next.endTime ||
       previous.intervalMinutes !== next.intervalMinutes ||
       previous.enabled !== next.enabled;
+    const sleepChanged =
+      previous.sleepStartTime !== next.sleepStartTime ||
+      previous.sleepEndTime !== next.sleepEndTime;
 
     config = next;
     saveConfigFile();
     if (scheduleChanged) markScheduleChanged();
+    if (sleepChanged) {
+      lastSleepTickAt = null;
+      sleepTick(new Date());
+      saveSleepLog();
+    }
 
     const warnings = [];
     if (previous.autoStart !== next.autoStart) {
@@ -666,6 +768,9 @@ function registerIpc() {
     }
     saveConfigFile();
     markScheduleChanged();
+    lastSleepTickAt = null;
+    sleepTick(new Date());
+    saveSleepLog();
     syncOverlayWindows();
     setAllOverlaysClickThrough(config.clickThrough);
     refreshTrayMenu();
@@ -685,6 +790,8 @@ function registerIpc() {
   });
 
   ipcMain.handle('status:get', () => buildStatus());
+
+  ipcMain.handle('sleep:get', () => buildSleepData());
 
   ipcMain.handle('schedule:set-enabled', (_event, enabled) => {
     config = normalizeConfig({ ...config, enabled: Boolean(enabled) });
@@ -757,6 +864,16 @@ async function runSelfTest() {
     }
   };
 
+  const waitForOverlay = async (timeoutMs = 6000) => {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const win = overlayWindows.get(displayKey(getPrimaryDisplay()));
+      if (win && !win.isDestroyed() && win.isVisible() && win.__ready) return win;
+      await wait(100);
+    }
+    return overlayWindows.get(displayKey(getPrimaryDisplay()));
+  };
+
   try {
     const win = settingsWindow || createSettingsWindow();
     if (win.webContents.isLoading()) {
@@ -817,16 +934,43 @@ async function runSelfTest() {
     assert(midnight.config.startTime === '00:00', 'midnight start time saves', midnight.config.startTime);
     assert(midnight.config.endTime === '08:00', 'midnight end time saves', midnight.config.endTime);
 
+    const sleepClockNow = new Date();
+    const sleepTestStart = formatClock(new Date(sleepClockNow.getTime() - 2 * 60 * 1000));
+    const sleepTestEnd = formatClock(new Date(sleepClockNow.getTime() + 30 * 60 * 1000));
+    const sleepSaved = await win.webContents.executeJavaScript(`(async () => {
+      const set = (id, value) => {
+        const el = document.getElementById(id);
+        if (el.type === 'checkbox') el.checked = value;
+        else el.value = value;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      };
+      set('sleepStartTime', '${sleepTestStart}');
+      set('sleepEndTime', '${sleepTestEnd}');
+      set('sleepPromptEnabled', true);
+      set('sleepPrompt', '自测附加语');
+      document.getElementById('saveBtn').click();
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      return window.sleepAPI.getSleepLog();
+    })()`);
+    assert(sleepSaved && sleepSaved.state && sleepSaved.state.active === true, 'sleep window becomes active', sleepSaved && sleepSaved.state);
+    assert(Array.isArray(sleepSaved.chart) && sleepSaved.chart.length === 30, 'sleep chart exposes 30 days', sleepSaved.chart && sleepSaved.chart.length);
+    assert(sleepSaved.records.length >= 1, 'sleep log records the current period', sleepSaved.records.length);
+    assert(sleepSaved.current && sleepSaved.current.observedSeconds >= 0, 'sleep log has current record', sleepSaved.current);
+
     await win.webContents.executeJavaScript(`window.sleepAPI.preview({
       startTime: '23:30', endTime: '07:30', intervalMinutes: 45, displaySeconds: 9,
       title: '预览测试', message: '预览第一行\\n预览第二行', sound: 'none', volume: 0.3,
-      showCountdown: true, clickThrough: false, allDisplays: false
+      showCountdown: true, clickThrough: false, allDisplays: false,
+      sleepStartTime: '${sleepTestStart}', sleepEndTime: '${sleepTestEnd}',
+      sleepPromptEnabled: true, sleepPrompt: '预览附加语'
     })`);
-    await wait(1600);
-    const previewWin = overlayWindows.get(displayKey(getPrimaryDisplay()));
+    const previewWin = await waitForOverlay(6000);
     assert(previewWin && previewWin.isVisible(), 'preview makes overlay visible');
     const previewTitle = await previewWin.webContents.executeJavaScript("document.getElementById('title').textContent");
     assert(previewTitle === '预览测试', 'preview renders title', previewTitle);
+    const previewNote = await previewWin.webContents.executeJavaScript("document.getElementById('sleepNoteText').textContent");
+    assert(previewNote === '预览附加语', 'preview renders sleep note', previewNote);
 
     // Now verify the real scheduler fires a reminder by placing the window
     // around the current local time and letting the one-second ticker run.
@@ -847,7 +991,7 @@ async function runSelfTest() {
     markScheduleChanged();
     captureMode = false;
     await wait(1800);
-    const scheduledWin = overlayWindows.get(displayKey(getPrimaryDisplay()));
+    const scheduledWin = await waitForOverlay(5000);
     assert(scheduledWin && scheduledWin.isVisible(), 'scheduler makes overlay visible');
     const scheduledText = await scheduledWin.webContents.executeJavaScript("(() => ({ title: document.getElementById('title').textContent, eyebrow: document.getElementById('eyebrow').textContent }))()");
     assert(scheduledText.title === '定时测试', 'scheduler renders configured title', scheduledText);
@@ -906,7 +1050,7 @@ async function captureScreens() {
   const settingsImage = await win.webContents.capturePage();
   fs.writeFileSync(path.join(outDir, 'settings.png'), settingsImage.toPNG());
 
-  for (const id of ['section-frequency', 'section-content', 'section-sound', 'section-behavior']) {
+  for (const id of ['section-frequency', 'section-content', 'section-sound', 'section-sleep', 'section-behavior']) {
     await win.webContents.executeJavaScript(`(() => {
       const scroller = document.getElementById('mainScroll');
       const section = document.getElementById('${id}');
@@ -915,6 +1059,17 @@ async function captureScreens() {
     await new Promise((resolve) => setTimeout(resolve, 500));
     const sectionImage = await win.webContents.capturePage();
     fs.writeFileSync(path.join(outDir, 'settings-' + id.replace('section-', '') + '.png'), sectionImage.toPNG());
+
+    if (id === 'section-sleep') {
+      await win.webContents.executeJavaScript(`(() => {
+        const scroller = document.getElementById('mainScroll');
+        const chart = document.getElementById('sleepChart');
+        scroller.scrollTop = chart.getBoundingClientRect().top + scroller.scrollTop - 145;
+      })()`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const chartImage = await win.webContents.capturePage();
+      fs.writeFileSync(path.join(outDir, 'settings-sleep-chart.png'), chartImage.toPNG());
+    }
   }
 
   showReminder({ ...config, enabled: true }, { preview: true });
@@ -983,6 +1138,7 @@ if (!hasLock) {
 
     powerMonitor.on('resume', () => {
       log('系统从睡眠中恢复');
+      lastSleepTickAt = null;
       scheduleTick();
       broadcastStatus();
     });
@@ -1020,6 +1176,12 @@ if (!hasLock) {
 
   app.on('before-quit', () => {
     isQuitting = true;
+    try {
+      sleepTick(new Date());
+      saveSleepLog();
+    } catch (error) {
+      log('退出前保存睡眠日志失败:', error);
+    }
     if (tickTimer) clearInterval(tickTimer);
     if (overlayHideTimer) clearTimeout(overlayHideTimer);
     if (overlayCleanupTimer) clearTimeout(overlayCleanupTimer);

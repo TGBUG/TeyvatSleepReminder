@@ -5,7 +5,8 @@ const $ = (id) => document.getElementById(id);
 const mainScroll = $('mainScroll');
 const formIds = [
   'startTime', 'endTime', 'intervalMinutes', 'displaySeconds', 'title', 'message',
-  'volume', 'showCountdown', 'clickThrough', 'allDisplays', 'enabled', 'autoStart'
+  'volume', 'showCountdown', 'clickThrough', 'allDisplays', 'enabled', 'autoStart',
+  'sleepStartTime', 'sleepEndTime', 'sleepPromptEnabled', 'sleepPrompt'
 ];
 
 const COPY_PRESETS = {
@@ -93,7 +94,11 @@ function collectConfig() {
     autoStart: $('autoStart').checked,
     clickThrough: $('clickThrough').checked,
     allDisplays: $('allDisplays').checked,
-    showCountdown: $('showCountdown').checked
+    showCountdown: $('showCountdown').checked,
+    sleepStartTime: formatClock($('sleepStartTime').value),
+    sleepEndTime: formatClock($('sleepEndTime').value),
+    sleepPromptEnabled: $('sleepPromptEnabled').checked,
+    sleepPrompt: $('sleepPrompt').value
   };
 }
 
@@ -207,6 +212,11 @@ function updateDerived() {
     ? '首次提醒将在 ' + start + ' 出现，每 ' + interval + ' 分钟一次。'
     : '设置时间后，这里会显示预计的提醒次数。';
 
+  $('sleepPromptCount').textContent = $('sleepPrompt').value.length + ' / 80';
+  const promptEnabled = $('sleepPromptEnabled').checked;
+  $('sleepPrompt').disabled = !promptEnabled;
+  $('sleepPromptEditor').classList.toggle('is-disabled', !promptEnabled);
+
   updateTimeline();
 }
 
@@ -224,6 +234,10 @@ function populate(config, metaInfo) {
   $('clickThrough').checked = Boolean(config.clickThrough);
   $('allDisplays').checked = Boolean(config.allDisplays);
   $('autoStart').checked = Boolean(config.autoStart);
+  $('sleepStartTime').value = config.sleepStartTime;
+  $('sleepEndTime').value = config.sleepEndTime;
+  $('sleepPromptEnabled').checked = Boolean(config.sleepPromptEnabled);
+  $('sleepPrompt').value = config.sleepPrompt;
   selectedSound = config.sound || 'harp';
   updateSoundUI();
   updateDerived();
@@ -278,6 +292,138 @@ function applyStatus(next) {
         ? '0 0 6px rgba(185,154,95,.55)'
         : 'none';
   }
+
+  applySleepStatus(next.sleep);
+}
+
+function formatDurationSeconds(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  if (total < 60) return '不足 1 分钟';
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.round((total % 3600) / 60);
+  if (hours && minutes) return hours + ' 小时 ' + minutes + ' 分';
+  if (hours) return hours + ' 小时';
+  return minutes + ' 分钟';
+}
+
+function formatIsoClock(iso) {
+  if (!iso) return '--:--';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return pad(date.getHours()) + ':' + pad(date.getMinutes());
+}
+
+function applySleepStatus(sleep) {
+  if (!sleep) return;
+  const active = Boolean(sleep.active);
+  $('sleepStatusText').textContent = active ? '熬夜记录中' : '等待睡觉时间';
+  $('sleepStatusSub').textContent = active
+    ? (sleep.windowStart || '--:--') + ' – ' + (sleep.windowEnd || '--:--') + ' · 程序运行中'
+    : '下次 · ' + (sleep.nextLabel || '—');
+  $('sleepCurrent').textContent = active
+    ? '今晚熬夜 ' + formatDurationSeconds(sleep.currentSeconds)
+    : '今晚尚未熬夜';
+  const dot = $('sleepStatusDot');
+  if (dot) dot.classList.toggle('is-active', active);
+}
+
+function renderSleepData(data) {
+  if (!data) return;
+
+  $('sleepRecordedDays').textContent = data.stats.recordedDays + ' 天';
+  $('sleepAverage').textContent = data.stats.recordedDays
+    ? formatDurationSeconds(data.stats.averageSeconds)
+    : '—';
+  $('sleepStreak').textContent = data.stats.noRecords
+    ? '30 天+'
+    : data.stats.streakDays + ' 天';
+
+  applySleepStatus({
+    active: data.state.active,
+    windowStart: data.windowStart,
+    windowEnd: data.windowEnd,
+    nextLabel: data.state.nextLabel,
+    currentSeconds: data.current ? data.current.observedSeconds : 0
+  });
+
+  const chart = $('sleepChart');
+  const labels = $('sleepChartLabels');
+  chart.textContent = '';
+  labels.textContent = '';
+  chart.classList.toggle('is-empty', Boolean(data.stats.noRecords));
+
+  if (data.stats.noRecords) {
+    const empty = document.createElement('div');
+    empty.className = 'sleep-chart-empty';
+    empty.textContent = '最近30天都没有熬夜，做的不错哦！';
+    chart.appendChild(empty);
+  } else {
+    const maxSeconds = Math.max(60, Number(data.windowMinutes || 480) * 60);
+    data.chart.forEach((entry) => {
+      const slot = document.createElement('div');
+      slot.className = 'sleep-bar-slot';
+      if (entry.record) {
+        const bar = document.createElement('div');
+        bar.className = 'sleep-bar';
+        const percent = Math.min(100, Math.max(2.5, (entry.record.observedSeconds / maxSeconds) * 100));
+        bar.style.height = percent + '%';
+        bar.title = entry.label + ' · 熬夜 ' + formatDurationSeconds(entry.record.observedSeconds) + ' · ' + formatIsoClock(entry.record.firstSeenAt) + ' 起';
+        slot.appendChild(bar);
+      } else {
+        slot.classList.add('is-empty');
+        slot.title = entry.label + ' · 无熬夜';
+      }
+      chart.appendChild(slot);
+    });
+
+    data.chart.forEach((entry, index) => {
+      const label = document.createElement('span');
+      label.className = 'sleep-chart-label';
+      if (index % 5 === 0 || index === data.chart.length - 1) {
+        label.textContent = entry.label;
+      }
+      labels.appendChild(label);
+    });
+  }
+
+  const recordsBox = $('sleepRecords');
+  recordsBox.textContent = '';
+  if (!data.records.length) {
+    const empty = document.createElement('div');
+    empty.className = 'sleep-empty';
+    empty.textContent = '最近30天没有熬夜记录。继续保持，做的不错哦！';
+    recordsBox.appendChild(empty);
+    return;
+  }
+
+  data.records.forEach((record) => {
+    const row = document.createElement('div');
+    row.className = 'sleep-record-row';
+
+    const date = document.createElement('span');
+    date.className = 'sleep-record-date';
+    date.textContent = record.label;
+
+    const first = document.createElement('span');
+    first.className = 'sleep-record-first';
+    first.textContent = formatIsoClock(record.firstSeenAt) + ' 起';
+
+    const duration = document.createElement('b');
+    duration.className = 'sleep-record-duration';
+    duration.textContent = formatDurationSeconds(record.observedSeconds);
+
+    row.append(date, first, duration);
+    recordsBox.appendChild(row);
+  });
+}
+
+async function refreshSleepLog() {
+  try {
+    const data = await api.getSleepLog();
+    renderSleepData(data);
+  } catch (error) {
+    console.warn('读取熬夜记录失败', error);
+  }
 }
 
 function showToast(message, tone) {
@@ -309,7 +455,11 @@ async function save() {
   if (!savedConfig) return;
   const config = collectConfig();
   if (clockToMinutes(config.startTime) === null || clockToMinutes(config.endTime) === null) {
-    showToast('请选择完整的开始和结束时间', 'warn');
+    showToast('请选择完整的提醒开始和结束时间', 'warn');
+    return;
+  }
+  if (clockToMinutes(config.sleepStartTime) === null || clockToMinutes(config.sleepEndTime) === null) {
+    showToast('请选择完整的睡觉和起床时间', 'warn');
     return;
   }
 
@@ -325,6 +475,7 @@ async function save() {
     }
     populate(result.config, result.meta || meta);
     applyStatus(result.status);
+    refreshSleepLog();
     showToast('设置已保存并生效');
     clearTimeout(saveStateTimer);
     $('saveState').textContent = '设置已保存';
@@ -348,6 +499,7 @@ async function init() {
     const data = await api.getConfig();
     populate(data.config, data.meta);
     applyStatus(data.status);
+    refreshSleepLog();
   } catch (error) {
     console.error(error);
     showToast('读取配置失败：' + (error.message || '未知错误'), 'warn');
@@ -415,6 +567,15 @@ async function init() {
       $('endTime').value = button.dataset.end;
       $('startTime').dispatchEvent(new Event('input', { bubbles: true }));
       $('endTime').dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+
+  document.querySelectorAll('.sleep-preset').forEach((button) => {
+    button.addEventListener('click', () => {
+      $('sleepStartTime').value = button.dataset.sleepStart;
+      $('sleepEndTime').value = button.dataset.sleepEnd;
+      $('sleepStartTime').dispatchEvent(new Event('input', { bubbles: true }));
+      $('sleepEndTime').dispatchEvent(new Event('input', { bubbles: true }));
     });
   });
 
@@ -488,6 +649,7 @@ async function init() {
       const result = await api.resetConfig();
       populate(result.config, result.meta || meta);
       applyStatus(result.status);
+      refreshSleepLog();
       showToast('已恢复默认设置');
     } catch (error) {
       showToast('恢复默认失败：' + (error.message || '未知错误'), 'warn');
@@ -524,6 +686,8 @@ async function init() {
     $('heroCountdown').textContent = formatCountdown(seconds);
   }, 500);
 
+  setInterval(refreshSleepLog, 30000);
+
   document.addEventListener('keydown', (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
       event.preventDefault();
@@ -539,6 +703,7 @@ async function init() {
   window.addEventListener('focus', async () => {
     try {
       applyStatus(await api.getStatus());
+      await refreshSleepLog();
     } catch (_) { /* ignore */ }
   });
 
